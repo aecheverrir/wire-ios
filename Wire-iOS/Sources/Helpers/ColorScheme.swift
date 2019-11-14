@@ -19,6 +19,17 @@
 import Foundation
 import UIKit
 
+fileprivate struct ColorPair {
+    let light: UIColor
+    let dark: UIColor
+}
+
+fileprivate extension ColorPair {
+    init(both color: UIColor) {
+        self.init(light: color, dark: color)
+    }
+}
+
 extension UIColor {
     static var graphite: UIColor = UIColor(rgb: (51, 55, 58))
     static var graphiteAlpha4: UIColor = UIColor(rgba:(51, 55, 58, 0.04))
@@ -60,8 +71,35 @@ extension UIColor {
 
     static var amberAlpha48: UIColor = UIColor(rgba:(254, 191, 2, 0.48))
     static var amberAlpha80: UIColor = UIColor(rgba:(254, 191, 2, 0.8))
-}
 
+    @objc(wr_colorFromColorScheme:)
+    static func from(scheme: ColorSchemeColor) -> UIColor {
+        return ColorScheme.default.color(named: scheme)
+    }
+    
+    @objc(wr_colorFromColorScheme:variant:)
+    static func from(scheme: ColorSchemeColor, variant: ColorSchemeVariant) -> UIColor {
+        return ColorScheme.default.color(named: scheme, variant: variant)
+    }
+    
+    /// Creates UIColor instance with color corresponding to @p accentColor that can be used to display the name.
+    // NB: the order of coefficients must match ZMAccentColor enum ordering
+    private static let accentColorNameColorBlendingCoefficientsDark: [CGFloat] = [0.0, 0.8, 0.72, 1.0, 0.8, 0.8, 0.8, 0.64]
+    private static let accentColorNameColorBlendingCoefficientsLight: [CGFloat] = [0.0, 0.8, 0.72, 1.0, 0.8, 0.8, 0.64, 1.0]
+    
+    /// Creates UIColor instance with color corresponding to @p accentColor that can be used to display the name.
+    class func nameColor(for accentColor: ZMAccentColor, variant: ColorSchemeVariant) -> UIColor {
+        
+        assert(accentColor.rawValue <= ZMAccentColor.max.rawValue)
+        
+        let coefficientsArray = variant == .dark ? accentColorNameColorBlendingCoefficientsDark : accentColorNameColorBlendingCoefficientsLight
+        let coefficient = coefficientsArray[Int(accentColor.rawValue)]
+        
+        
+        let background: UIColor = variant == .dark ? .black : .white
+        return background.mix(UIColor(fromZMAccentColor: accentColor), amount: coefficient)
+    }
+}
 
 @objc public enum ColorSchemeColor: Int {
     case textForeground
@@ -277,46 +315,4 @@ final class ColorScheme: NSObject {
         return UIColor.nameColor(for: color, variant: variant)
     }
     
-}
-
-fileprivate struct ColorPair {
-    let light: UIColor
-    let dark: UIColor
-}
-
-fileprivate extension ColorPair {
-    init(both color: UIColor) {
-        self.init(light: color, dark: color)
-    }
-}
-
-extension UIColor {
-    
-    @objc(wr_colorFromColorScheme:)
-    static func from(scheme: ColorSchemeColor) -> UIColor {
-        return ColorScheme.default.color(named: scheme)
-    }
-    
-    @objc(wr_colorFromColorScheme:variant:)
-    static func from(scheme: ColorSchemeColor, variant: ColorSchemeVariant) -> UIColor {
-        return ColorScheme.default.color(named: scheme, variant: variant)
-    }
-
-    /// Creates UIColor instance with color corresponding to @p accentColor that can be used to display the name.
-    // NB: the order of coefficients must match ZMAccentColor enum ordering
-    private static let accentColorNameColorBlendingCoefficientsDark: [CGFloat] = [0.0, 0.8, 0.72, 1.0, 0.8, 0.8, 0.8, 0.64]
-    private static let accentColorNameColorBlendingCoefficientsLight: [CGFloat] = [0.0, 0.8, 0.72, 1.0, 0.8, 0.8, 0.64, 1.0]
-    
-    /// Creates UIColor instance with color corresponding to @p accentColor that can be used to display the name.
-    class func nameColor(for accentColor: ZMAccentColor, variant: ColorSchemeVariant) -> UIColor {
-        
-        assert(accentColor.rawValue <= ZMAccentColor.max.rawValue)
-        
-        let coefficientsArray = variant == .dark ? accentColorNameColorBlendingCoefficientsDark : accentColorNameColorBlendingCoefficientsLight
-        let coefficient = coefficientsArray[Int(accentColor.rawValue)]
-    
-        
-        let background: UIColor = variant == .dark ? .black : .white
-        return background.mix(UIColor(fromZMAccentColor: accentColor), amount: coefficient)
-    }
 }
